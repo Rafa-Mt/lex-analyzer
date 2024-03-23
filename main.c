@@ -134,4 +134,5 @@ int main() {
     printf("Valid\n");
     saveToFile(out);
     free(out);
+    free(entry);
 }

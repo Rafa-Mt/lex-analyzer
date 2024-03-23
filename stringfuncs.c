@@ -12,7 +12,7 @@ char* slice(char* entry, int start, int end) {
         return NULL;
     }
     int finalsize = end-start+1;
-    char* out = (char*) malloc((finalsize)*sizeof(char));
+    char* out = (char*) malloc(finalsize*sizeof(char));
 
     for (int i=start, actual=0; i<=end; i++, actual++) {
         if (i == end) {
