@@ -46,3 +46,10 @@ char* trim(char* entry) {
     return slice(entry, left, right+1);
 }
 
+int isNum(char entry) {
+    return entry >= '0' && entry <= '9';
+}
+
+int isLetter(char entry) {
+    return entry >= 'A' && entry <= 'Z' || entry >= 'a' && entry <= 'z';
+}
