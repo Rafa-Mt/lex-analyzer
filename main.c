@@ -205,12 +205,10 @@ int main() {
     fgets(entry, 64, stdin);
 
     Record* out = validateString(trim(entry));
-    if (!out->filled) {
-        printf("Invalid\n");
-        return 0;
-    }
+    if (!out->filled) return 0;
+    
 
-    printf("Valid\n");
+    printf("Valid\nResult is: %s", out->result ? "True" : "False");
     saveToFile(out);
     free(out);
     // free(entry);

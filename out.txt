@@ -10,3 +10,38 @@
 	Operator: "<"
 	Value 2: 2
 }
+{
+	Name: "x"
+	Value 1: 2
+	Operator: "<"
+	Value 2: 3
+	Result: "True"
+}
+{
+	Name: "x"
+	Value 1: 2
+	Operator: "<"
+	Value 2: 3
+	Result: "True"
+}
+{
+	Name: "x"
+	Value 1: 2
+	Operator: "<"
+	Value 2: 2
+	Result: "False"
+}
+{
+	Name: "x"
+	Value 1: 2
+	Operator: "<"
+	Value 2: 3
+	Result: "True"
+}
+{
+	Name: "x"
+	Value 1: 2
+	Operator: "<"
+	Value 2: 3
+	Result: "True"
+}
