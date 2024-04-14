@@ -9,6 +9,7 @@ enum NodeTypes {
 struct Node;
 typedef struct Node {
     struct Node* next;
+    struct Node* prev;
     int type;
 
     int operand; // Null if type == OPERATOR

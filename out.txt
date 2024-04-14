@@ -45,3 +45,28 @@
 	Value 2: 3
 	Result: "True"
 }
+{
+	Infix Expression: "[ 1 + 2 * 3 - 4 ]"
+	Postfix Expression: "[ 1 2 3 * + 4 - ]"
+	Result: 3
+}
+{
+	Infix Expression: "[ 1 + 2 * 3 ^ 2 - 4 ]"
+	Postfix Expression: "[ 1 2 3 2 ^ * + 4 - ]"
+	Result: 15
+}
+{
+	Infix Expression: "[ 1 + 2 * 3 - 4 ]"
+	Postfix Expression: "[ 1 2 3 * + 4 - ]"
+	Result: 3
+}
+{
+	Infix Expression: "[ 1 + 2 * 3 - 4 ]"
+	Postfix Expression: "[ 1 2 3 * + 4 - ]"
+	Result: 3
+}
+{
+	Infix Expression: [ 1 + 2 * 3 - 4 ]
+	Postfix Expression: [ 1 2 3 * + 4 - ]
+	Result: 3
+}

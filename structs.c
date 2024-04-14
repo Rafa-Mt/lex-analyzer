@@ -47,6 +47,7 @@ void listPush(List* list, Node* new) {
         return;
     }
     list->tail->next = copy;
+    copy->prev = list->tail;
     list->tail = copy;
     copy->next = NULL;
 }

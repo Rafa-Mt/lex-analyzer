@@ -7,22 +7,16 @@
 #include "structs.h"
 
 typedef struct recordStruct {
-    char* name;
-    int val1;
-    char* operator;
-    int val2;
-    int filled;
+    char* infix;
+    char* postfix;
     int result;
 
 } Record;
 
 Record* newRecord() {
     Record* result;
-    result->name = malloc(65*sizeof(char));
-    result->operator = malloc(3*sizeof(char));
-    result->val1 = 0;
-    result->val2 = 0;
-    result->filled = 0;
+    result->infix = malloc(512*sizeof(char));
+    result->postfix = malloc(512*sizeof(char));
     result->result = 0;
 
     return result;
@@ -32,17 +26,14 @@ char* recordToStr(Record* record) {
     char* result = malloc(512*sizeof(char));
     sprintf(
         result,
-        "{\n\tName: \"%s\"\n\tValue 1: %i\n\tOperator: \"%s\"\n\tValue 2: %i\n\tResult: \"%s\"\n}", 
-        record->name, record->val1, 
-        record->operator, record->val2,
-        record->result ? "True" : "False"
+        "{\n\tInfix Expression: %s\n\tPostfix Expression: %s\n\tResult: %i\n}", 
+        record->infix, record->postfix, record->result
     );
 
     return result;
 }
 
 void printRecord(Record* record) {
-    if (record->filled = 0) return;
     printf("Result: %s\n", recordToStr(record));
 }
 
@@ -153,9 +144,6 @@ int higherPriority(char a, char b) {
 }
 
 List* infixToPostfix(List* entry) {
-
-    // char* instr = structToStr(entry->head);
-
     List* result = newList(newOperand(entry->head->operand));
     Stack* auxStack = newStack(entry->head->next);
 
@@ -168,9 +156,7 @@ List* infixToPostfix(List* entry) {
         }   
 
         int actualPriority = getPriority(actual->operator);
-        int stackIsHigher = getPriority(auxStack->head->operator) >= actualPriority;
-
-        if (stackIsHigher) {
+        if (getPriority(auxStack->head->operator) >= actualPriority) {
             while (getPriority(auxStack->head->operator) >= actualPriority) {
                 Node* popped = stackPop(auxStack);
                 listPush(result, popped);
@@ -197,11 +183,28 @@ List* infixToPostfix(List* entry) {
 
 int solvePostfix(List* operation) {
     Node* actual = operation->head;
+    Stack* auxStack = newEmptyStack();
     while (actual != NULL) {
+        if (actual->type == OPERAND) {
+            stackPush(auxStack, newOperand(actual->operand));   
+        }
+        else {
+            // printf("%c ", actual->operator);
+            Node* val2 = stackPop(auxStack);
+            Node* val1 = stackPop(auxStack);
+            int result = actual->operation(val1->operand, val2->operand);
+            free(val1);
+            free(val2);
+            stackPush(auxStack, newOperand(result));
 
-        
+            if (auxStack->head == NULL) break;
+        }
         actual = actual->next;
     }
+    int solution = auxStack->head->operand;
+    free(auxStack->head); 
+    free(auxStack); 
+    return solution;
 }
 
 void saveToFile(Record* record) {
@@ -209,7 +212,6 @@ void saveToFile(Record* record) {
     fprintf(file, "%s\n", recordToStr(record));
     fclose(file);
 }
-
 
 int main() {
     char* entry = malloc(64*sizeof(char));
@@ -226,7 +228,16 @@ int main() {
 
     List* postfix = infixToPostfix(infix);
     char* poststr = structToStr(postfix->head);
-    printf("%s => %s", instr, poststr);
+
+    int solution = solvePostfix(postfix);
+
+    Record* output = newRecord();
+    output->infix = instr;
+    output->postfix = poststr;
+    output->result = solution;
+
+    printRecord(output);
+    saveToFile(output);
 
     free(entry);
     free(infix);
