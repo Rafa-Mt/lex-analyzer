@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include "stringfuncs.h"
+#include "structs.h"
 
 typedef struct recordStruct {
     char* name;
@@ -27,7 +29,7 @@ Record* newRecord() {
 }
 
 char* recordToStr(Record* record) {
-    char* result = malloc(256*sizeof(char));
+    char* result = malloc(512*sizeof(char));
     sprintf(
         result,
         "{\n\tName: \"%s\"\n\tValue 1: %i\n\tOperator: \"%s\"\n\tValue 2: %i\n\tResult: \"%s\"\n}", 
@@ -44,29 +46,34 @@ void printRecord(Record* record) {
     printf("Result: %s\n", recordToStr(record));
 }
 
-// Valid Syntax: "<ABRIR> [name]=[val1][operator][val2] <CERRAR>"
-// val1    : any int number
-// operator: limited to {">", "<", "==", "!="}
-// val2    : any int number
-void calcOperationComponets(char* operation, Record* record);
-int calcOperationResult(Record* record);
+int sum(int a, int b) { return a+b; }
+int subtract(int a, int b) { return a-b; }
+int multiply(int a, int b) { return a*b; }
+int power(int a, int b) {
+    int result = 1;
+    for (int t=1; t<=b; t++) {
+        result *= a;
+    } 
+    return result; 
+}
 
-Record* validateString(char* entry) {
-    Record* result = newRecord();
-    unsigned int lenght = strlen(entry);
+List* checkAndConvert(char* entry) {
+    List* result = newEmptyList();
+
+    unsigned int length = strlen(entry);
     // if (lenght < 17) return result;
 
     char* openTag = slice(entry, 0, 5);
-    char* closeTag = slice(entry, lenght-6, lenght);
+    char* closeTag = slice(entry, length-6, length);
 
     if (strcmp(openTag, "ABRIR")) {
         printf("Error at parsing: Keyword \"ABRIR\" not found");
-        return result;
+        return NULL;
     }
 
     if (strcmp(closeTag, "CERRAR")) {
         printf("Error at parsing: Keyword \"CERRAR\" not found");
-        return result;
+        return NULL;
     }
 
     free(openTag);
@@ -77,120 +84,124 @@ Record* validateString(char* entry) {
         return result;
     }
 
-    if (entry[lenght-7] != ' ') {
+    if (entry[length-7] != ' ') {
         printf("Error at parsing: Expected space after \"CERRAR\" ");
         return result;
     }
 
-    char* asignation = slice(entry, 6, lenght-7);
+    char* operation = slice(entry, 6, length-7);
+    int oplength = length-7-6;
 
-    unsigned int asignationLen = strlen(asignation);
-    // if (asignationLen < 5) {
-    //     return result;
-    // }
+    char operators[4] = "+-*^";
+    int(*operations[4])(int, int) = {&sum, &subtract, &multiply, &power};
 
-    unsigned int opIndex = 0;
-    unsigned int foundOperator;
+    for (int i=0; i<oplength-1; i++) {
+        if (charIn(operation[i], operators) || isNum(operation[i]))  
+            continue;
+        
+        printf("Error at parsing: Unexpected character '%c' %i\n", operation[i], i);
+        return NULL;
+    }
 
-    for (opIndex=0; opIndex<asignationLen; opIndex++) {
-        if (
-            asignation[opIndex] == '=' &&
-            asignation[opIndex+1] != '=' 
-        ) {
-            foundOperator = 1;
-            break;
+    int right = 0;
+    int left = 0;
+    for(int i=0; i<oplength; i++) {
+        int isOperator = 0;
+        for (int j=0; j<4; j++) {
+            if (operation[i] == operators[j]) {
+                char* subStr = slice(operation, left, right);
+                int number = atoi(subStr);
+                free(subStr);
+
+                listPush(result, newOperand(number));
+                listPush(result, newOperator(operators[j], operations[j]));
+
+                left = i+1;
+                right = i+1;
+                isOperator = 1;
+            }
         }
+        if (isOperator) continue;
+
+        if (i == oplength-1) {
+            char* subStr = slice(operation, left, oplength);
+            // printf("{%s}\n", subStr);
+            int number = atoi(subStr);
+            free(subStr);
+
+            listPush(result, newOperand(number));
+            continue;
+        }
+
+        right++;
     }
 
-    if (opIndex == asignationLen-1) {
-        printf("Error at parsing: Expected '=' \n");
-        return result;
+    free(operation);
+
+    return result;
+}
+int getPriority(char entry) {
+    if (entry == '+' || entry == '-') {
+        return 1;
+    }
+    else if (entry == '*') return 2;
+    else if (entry == '^') return 3;
+}
+
+int higherPriority(char a, char b) {
+    return getPriority(a) > getPriority(b);
+}
+
+List* infixToPostfix(List* entry) {
+
+    // char* instr = structToStr(entry->head);
+
+    List* result = newList(newOperand(entry->head->operand));
+    Stack* auxStack = newStack(entry->head->next);
+
+    Node* actual = entry->head->next->next;
+    while (actual != NULL) {
+        if (actual->type == OPERAND) {
+            listPush(result, actual);
+            actual = actual->next;
+            continue;
+        }   
+
+        int actualPriority = getPriority(actual->operator);
+        int stackIsHigher = getPriority(auxStack->head->operator) >= actualPriority;
+
+        if (stackIsHigher) {
+            while (getPriority(auxStack->head->operator) >= actualPriority) {
+                Node* popped = stackPop(auxStack);
+                listPush(result, popped);
+                if (auxStack->head == NULL) break; 
+            }
+            stackPush(auxStack, actual);
+        }
+        else {
+            stackPush(auxStack, actual);
+        }
+        actual = actual->next;
     }
 
-    char* varName = slice(asignation, 0, opIndex);
-    if (!isLetter(varName[0])) {
-        printf("Error at parsing: Variable name must start with letter ");
-        return result;
+    actual = auxStack->head;
+    while (actual != NULL) {
+        Node* popped = stackPop(auxStack);
+
+        listPush(result, popped);
+        actual = actual->next;
     }
-
-    char* operation = slice(asignation, opIndex+1, asignationLen);
-
-    free(asignation);
-
-    strcpy(result->name, varName); 
-
-    free(varName);
-
-    calcOperationComponets(operation, result);
 
     return result;
 }
 
+int solvePostfix(List* operation) {
+    Node* actual = operation->head;
+    while (actual != NULL) {
 
-void calcOperationComponets(char* operation, Record* record) {
-    unsigned int opStart;
-    unsigned int doubleOp;
-    for (opStart=0; opStart<strlen(operation); opStart++) {
-        if (
-            operation[opStart] == ' ' || 
-            isNum(operation[opStart])
-        ) continue;
-        if (
-            operation[opStart] == '<' || operation[opStart] == '>' ||
-            operation[opStart] == '=' || operation[opStart] == '!' 
-        ) {
-            doubleOp = operation[opStart+1] == '=' && operation[opStart] != '<' && operation[opStart] != '>';
-            break;
-        }
-
-        // Character found is not operator nor number
-        printf("Error at parsing: Expected operator, got '%c'\n", operation[opStart]);
-        return;
-
-    }
-    unsigned int opEnd = opStart+doubleOp+1;
-
-    char* operator = slice(operation, opStart, opEnd);
-    strcpy(record->operator, operator);
-
-    free(operator);
-
-    char* val1 = slice(operation, 0, opStart);
-    char* val2 = slice(operation, opEnd, strlen(operation));
-
-    if (!atoi(val1) && strcmp(val1, "0")) {
-        printf("Error at parsing: Value 1 is not a number\n");
-        return;
-    }
-
-    if (!atoi(val2) && strcmp(val2, "0")) {
-        printf("Error at parsing: Value 2 is not a number\n");
-        return;
-    }
-
-    record->val1 = atoi(val1);
-    record->val2 = atoi(val2);
-
-    calcOperationResult(record);
-
-    record->filled = 1;
-}
-
-int calcOperationResult(Record* record) {
-    int result = 0;
-    if (!strcmp(record->operator, ">")) 
-        result = record->val1 > record->val2;
-
-    if (!strcmp(record->operator, "<")) 
-        result = record->val1 < record->val2;
         
-    if (!strcmp(record->operator, "==")) 
-        result = record->val1 == record->val2;
-
-    if (!strcmp(record->operator, "!=")) 
-        result = record->val1 != record->val2;
-
-    record->result = result;
+        actual = actual->next;
+    }
 }
 
 void saveToFile(Record* record) {
@@ -199,17 +210,27 @@ void saveToFile(Record* record) {
     fclose(file);
 }
 
+
 int main() {
     char* entry = malloc(64*sizeof(char));
     printf(" > ");
     fgets(entry, 64, stdin);
+    strcpy(entry, trim(entry));
 
-    Record* out = validateString(trim(entry));
-    if (!out->filled) return 0;
-    
+    List* infix = checkAndConvert(entry);
+    if (infix == NULL) {
+        return 0;
+    }
 
-    printf("Valid\nResult is: %s", out->result ? "True" : "False");
-    saveToFile(out);
-    free(out);
-    // free(entry);
-}
+    char* instr = structToStr(infix->head);
+
+    List* postfix = infixToPostfix(infix);
+    char* poststr = structToStr(postfix->head);
+    printf("%s => %s", instr, poststr);
+
+    free(entry);
+    free(infix);
+    free(postfix);
+    free(poststr);
+    return 0;
+}   

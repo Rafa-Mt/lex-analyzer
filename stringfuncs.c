@@ -15,7 +15,7 @@ char* slice(char* entry, int start, int end) {
     char* out = (char*) malloc(finalsize*sizeof(char));
 
     for (int i=start, actual=0; i<=end; i++, actual++) {
-        if (i == end) {
+        if (i == end || entry[i] == 0) {
             out[actual] = '\0';
             break;
         }
@@ -52,4 +52,11 @@ int isNum(char entry) {
 
 int isLetter(char entry) {
     return entry >= 'A' && entry <= 'Z' || entry >= 'a' && entry <= 'z';
+}
+
+int charIn(char entry, char* comparator) {
+    for (int i=0; i<strlen(comparator); i++) {
+        if (entry == comparator[i]) return 1;
+    }
+    return 0;
 }
